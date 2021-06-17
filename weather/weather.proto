@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "github.com/paulosman/grpc-weather-service/weather";
+
+message ZipCode {
+	string value = 1;
+}
+
+message Weather {
+	int32 temperature = 1;
+	int32 humidity = 2;
+	string description = 3;
+	string hostname = 4;
+}
+
+service WeatherService {
+	rpc GetWeatherByZipCode(ZipCode) returns (Weather) {}
+}
