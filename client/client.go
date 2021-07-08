@@ -11,14 +11,14 @@ import (
 
 	"github.com/paulosman/grpc-weather-service/weather"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 func main() {
 	zipCode := flag.String("zipcode", "70115", "The zip code as a string")
 	flag.Parse()
 
-	conn, err := grpc.Dial("grpc.paulosman.me:443", grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")))
+	//conn, err := grpc.Dial("grpc.paulosman.me:443", grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")))
+	conn, err := grpc.Dial("localhost:9000", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("dit not connect: %s", err)
 	}
@@ -37,7 +37,7 @@ func main() {
 	}()
 
 	for {
-		response, err := client.GetWeatherByZipCode(ctx, &weather.ZipCode{Value: *zipCode})
+		response, err := client.GetWeatherByZipCode(ctx, &weather.WeatherRequest{Zip: *zipCode, Country: "US"})
 		if err != nil {
 			log.Fatalf("Error when calling GetWeatherByZipCode: %s", err)
 		}
