@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/paulosman/grpc-weather-service/weather"
 	"google.golang.org/grpc"
@@ -17,6 +19,7 @@ import (
 	beeline "github.com/honeycombio/beeline-go"
 	"github.com/honeycombio/beeline-go/wrappers/config"
 	"github.com/honeycombio/beeline-go/wrappers/hnygrpc"
+	"github.com/honeycombio/beeline-go/wrappers/hnynethttp"
 )
 
 const (
@@ -59,7 +62,14 @@ func (w *WeatherServer) GetWeatherByZipCode(ctx context.Context, in *weather.Wea
 	if err != nil {
 		hostname = "unknown-hostname"
 	}
-	resp, err := http.Get(getWeatherServiceURL(in.Zip, in.Country))
+
+	client := &http.Client{
+		Transport: hnynethttp.WrapRoundTripper(http.DefaultTransport),
+		Timeout:   time.Second * 5,
+	}
+	req, _ := http.NewRequest(http.MethodGet, getWeatherServiceURL(in.Zip, in.Country), strings.NewReader(""))
+	req = req.WithContext(ctx)
+	resp, err := client.Do(req)
 
 	if err != nil {
 		panic(err)
