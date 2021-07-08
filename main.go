@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/paulosman/grpc-weather-service/weather"
@@ -14,31 +19,77 @@ import (
 	"github.com/honeycombio/beeline-go/wrappers/hnygrpc"
 )
 
-type WeatherServer struct {
+const (
+	baseURL = "http://api.openweathermap.org/data/2.5/weather"
+)
+
+var (
+	weatherAPIKey    = os.Getenv("WEATHER_API_KEY")
+	honeycombAPIKey  = os.Getenv("HONEYCOMB_API_KEY")
+	honeycombDataset = os.Getenv("HONEYCOMB_DATASET")
+)
+
+type WeatherData struct {
+	Humidity    int32   `json:"humidity"`
+	Temperature float32 `json:"temp"`
 }
 
-func (w *WeatherServer) GetWeatherByZipCode(ctx context.Context, in *weather.ZipCode) (*weather.Weather, error) {
+type WeatherDescription struct {
+	Description string `json:"description"`
+}
+type WeatherResponse struct {
+	Data    WeatherData          `json:"main"`
+	Weather []WeatherDescription `json:"weather"`
+}
+
+type WeatherServer struct{}
+
+func getWeatherServiceURL(zipCode string, country string) string {
+	return fmt.Sprintf(baseURL+"?q=%s,%s&appId=%s",
+		url.QueryEscape(zipCode), url.QueryEscape(country), url.QueryEscape(weatherAPIKey))
+}
+
+func (w *WeatherServer) GetWeatherByZipCode(ctx context.Context, in *weather.WeatherRequest) (*weather.Weather, error) {
 	ctx, span := beeline.StartSpan(ctx, "GetWeatherByZipCode")
-	span.AddField("app.zipcode", in.Value)
+	span.AddField("app.zipcode", in.Zip)
+	span.AddField("app.countrycode", in.Country)
 	defer span.Send()
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown-hostname"
 	}
+	resp, err := http.Get(getWeatherServiceURL(in.Zip, in.Country))
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		panic(err)
+	}
+	response := &WeatherResponse{}
+	if err := json.Unmarshal(data, &response); err != nil {
+		panic(err)
+	}
+
 	return &weather.Weather{
-		Temperature: 56,
-		Humidity:    99,
-		Description: "Cloudy",
+		Temperature: response.Data.Temperature,
+		Humidity:    response.Data.Humidity,
+		Description: response.Weather[0].Description,
 		Hostname:    hostname,
 	}, nil
 }
 
 func main() {
 	beeline.Init(beeline.Config{
-		WriteKey:    "honeycomb-write-key",
-		Dataset:     "test-grpc-beeline",
+		WriteKey:    honeycombAPIKey,
+		Dataset:     honeycombDataset,
 		ServiceName: "grpc-weather-service",
-		//APIHost: "http://localhost:8081",
 	})
 	lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", "9000"))
 	if err != nil {

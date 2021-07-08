@@ -11,14 +11,13 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // WeatherServiceClient is the client API for WeatherService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WeatherServiceClient interface {
-	GetWeatherByZipCode(ctx context.Context, in *ZipCode, opts ...grpc.CallOption) (*Weather, error)
+	GetWeatherByZipCode(ctx context.Context, in *WeatherRequest, opts ...grpc.CallOption) (*Weather, error)
 }
 
 type weatherServiceClient struct {
@@ -29,7 +28,7 @@ func NewWeatherServiceClient(cc grpc.ClientConnInterface) WeatherServiceClient {
 	return &weatherServiceClient{cc}
 }
 
-func (c *weatherServiceClient) GetWeatherByZipCode(ctx context.Context, in *ZipCode, opts ...grpc.CallOption) (*Weather, error) {
+func (c *weatherServiceClient) GetWeatherByZipCode(ctx context.Context, in *WeatherRequest, opts ...grpc.CallOption) (*Weather, error) {
 	out := new(Weather)
 	err := c.cc.Invoke(ctx, "/WeatherService/GetWeatherByZipCode", in, out, opts...)
 	if err != nil {
@@ -42,14 +41,14 @@ func (c *weatherServiceClient) GetWeatherByZipCode(ctx context.Context, in *ZipC
 // All implementations should embed UnimplementedWeatherServiceServer
 // for forward compatibility
 type WeatherServiceServer interface {
-	GetWeatherByZipCode(context.Context, *ZipCode) (*Weather, error)
+	GetWeatherByZipCode(context.Context, *WeatherRequest) (*Weather, error)
 }
 
 // UnimplementedWeatherServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedWeatherServiceServer struct {
 }
 
-func (UnimplementedWeatherServiceServer) GetWeatherByZipCode(context.Context, *ZipCode) (*Weather, error) {
+func (UnimplementedWeatherServiceServer) GetWeatherByZipCode(context.Context, *WeatherRequest) (*Weather, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWeatherByZipCode not implemented")
 }
 
@@ -61,11 +60,11 @@ type UnsafeWeatherServiceServer interface {
 }
 
 func RegisterWeatherServiceServer(s grpc.ServiceRegistrar, srv WeatherServiceServer) {
-	s.RegisterService(&WeatherService_ServiceDesc, srv)
+	s.RegisterService(&_WeatherService_serviceDesc, srv)
 }
 
 func _WeatherService_GetWeatherByZipCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ZipCode)
+	in := new(WeatherRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -77,15 +76,12 @@ func _WeatherService_GetWeatherByZipCode_Handler(srv interface{}, ctx context.Co
 		FullMethod: "/WeatherService/GetWeatherByZipCode",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WeatherServiceServer).GetWeatherByZipCode(ctx, req.(*ZipCode))
+		return srv.(WeatherServiceServer).GetWeatherByZipCode(ctx, req.(*WeatherRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// WeatherService_ServiceDesc is the grpc.ServiceDesc for WeatherService service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var WeatherService_ServiceDesc = grpc.ServiceDesc{
+var _WeatherService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "WeatherService",
 	HandlerType: (*WeatherServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
